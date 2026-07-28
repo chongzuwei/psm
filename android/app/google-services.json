@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "226709067191",
+    "project_id": "psm2-8c2fc",
+    "storage_bucket": "psm2-8c2fc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:226709067191:android:747d253ef4874b82fb4432",
+        "android_client_info": {
+          "package_name": "com.example.psm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOb4BUhws831tM1TNaiA7ZB8xa-O0YGu0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
