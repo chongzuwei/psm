@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/admin_accounts.dart';
 import '../profile/profile_screen.dart';
+import 'schedule_availability_screen.dart';
 
 class RoleHomeScreen extends StatelessWidget {
   const RoleHomeScreen({
@@ -57,6 +58,15 @@ class RoleHomeScreen extends StatelessWidget {
                 role: role,
                 displayName: displayName,
                 email: user.email,
+              ),
+              const SizedBox(height: 16),
+              ScheduleAvailabilitySummary(
+                isAdmin: role == 'admin',
+                onManagePressed: () async {
+                  await Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const ScheduleAvailabilityScreen(),
+                  ));
+                },
               ),
               const SizedBox(height: 16),
               ..._roleCards(role),
@@ -207,6 +217,160 @@ class _FeatureCard extends StatelessWidget {
         subtitle: Text(subtitle),
       ),
     );
+  }
+}
+
+class ScheduleAvailabilitySummary extends StatelessWidget {
+  const ScheduleAvailabilitySummary({
+    super.key,
+    required this.isAdmin,
+    required this.onManagePressed,
+  });
+
+  final bool isAdmin;
+  final VoidCallback onManagePressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('schedules').orderBy('sortKey').snapshots(),
+      builder: (context, snapshot) {
+        final slots = (snapshot.data?.docs ?? const [])
+            .where((doc) => doc.data()['active'] != false)
+            .toList();
+
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: Colors.blue.shade100),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: const Color(0xFFE0E7FF),
+                      child: const Icon(Icons.calendar_month_outlined, color: Color(0xFF1D4ED8)),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Teaching Hours',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                          ),
+                          SizedBox(height: 2),
+                          Text('Current availability shared with students and staff.'),
+                        ],
+                      ),
+                    ),
+                    if (isAdmin)
+                      TextButton.icon(
+                        onPressed: onManagePressed,
+                        icon: const Icon(Icons.edit_calendar_outlined),
+                        label: const Text('Manage'),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (slots.isEmpty)
+                  Text(
+                    isAdmin
+                        ? 'No availability slots configured yet. Add teaching hours for the week.'
+                        : 'No teaching hours have been published yet.',
+                    style: TextStyle(color: Colors.grey.shade700),
+                  )
+                else
+                  Column(
+                    children: slots.map((doc) => _ScheduleSlotTile(data: doc.data())).toList(),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ScheduleSlotTile extends StatelessWidget {
+  const _ScheduleSlotTile({required this.data});
+
+  final Map<String, dynamic> data;
+
+  @override
+  Widget build(BuildContext context) {
+    final day = (data['dayLabel'] as String?)?.trim().isNotEmpty == true
+        ? data['dayLabel'] as String
+        : _dayLabel(data['dayIndex'] as int?);
+    final start = (data['startTimeLabel'] as String?)?.trim() ?? '--:--';
+    final end = (data['endTimeLabel'] as String?)?.trim() ?? '--:--';
+    final note = (data['notes'] as String?)?.trim();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FBFF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.blue.shade50),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.access_time_outlined, color: Color(0xFF1D4ED8)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$day · $start - $end',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                if (note != null && note.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(note),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _dayLabel(int? index) {
+    switch (index) {
+      case 0:
+        return 'Monday';
+      case 1:
+        return 'Tuesday';
+      case 2:
+        return 'Wednesday';
+      case 3:
+        return 'Thursday';
+      case 4:
+        return 'Friday';
+      case 5:
+        return 'Saturday';
+      case 6:
+        return 'Sunday';
+      default:
+        return 'Day';
+    }
   }
 }
 
