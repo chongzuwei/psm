@@ -23,6 +23,29 @@ flutter run
 4. Add the generated Firebase config files for Android and iOS.
 5. Replace the placeholder buttons and messages with your app flows.
 
+## User database (Firestore)
+
+The app stores each profile at `users/{uid}`, where `uid` is the Firebase
+Authentication UID.
+
+```text
+uid, email, displayName, role, status, createdAt, updatedAt, lastLoginAt
+```
+
+In the Firebase console, create Firestore once at **Build → Firestore Database
+→ Create database** (choose the project region and production mode). Also
+enable **Email/Password** in **Build → Authentication → Sign-in method**.
+
+Then deploy the included access rules:
+
+```bash
+firebase use psm2-8c2fc
+firebase deploy --only firestore:rules
+```
+
+Signing up in the app will create the Firebase Auth account and its matching
+Firestore profile automatically.
+
 ## Current app flow
 
 - The app opens on a Firebase auth screen.

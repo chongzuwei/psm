@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+
+    // Move this to Firebase custom claims before production use.
+    // It matches the existing protected admin account in admin_accounts.dart.
+    function isAdmin() {
+      return signedIn() && request.auth.token.email == 'admin@psm.com';
+    }
+
+    function isOwnProfile(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwnProfile(userId) || isAdmin();
+
+      allow create: if isAdmin() || (
+        isOwnProfile(userId) &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.role in ['student', 'teacher', 'parent'] &&
+        request.resource.data.status == 'active'
+      );
+
+      allow update: if isAdmin() || (
+        isOwnProfile(userId) &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.email == resource.data.email &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.status == resource.data.status
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

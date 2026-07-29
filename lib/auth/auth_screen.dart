@@ -128,23 +128,26 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
+    final profileRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final profileSnapshot = await profileRef.get();
+    final shouldInitializeProfile = isNewUser || !profileSnapshot.exists;
     final normalizedEmail = user.email?.trim().toLowerCase();
     final isBuiltInAdmin = normalizedEmail != null && isBuiltInAdminEmail(normalizedEmail);
     final resolvedRole = isBuiltInAdmin ? 'admin' : _selectedRole;
     final resolvedName = isBuiltInAdmin
-      ? builtInAdminName(normalizedEmail ?? '')
+      ? builtInAdminName(normalizedEmail)
         : (_nameController.text.trim().isNotEmpty
             ? _nameController.text.trim()
             : user.displayName);
 
-    final profileRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
     final payload = <String, dynamic>{
       'uid': user.uid,
       'email': user.email,
       'displayName': resolvedName,
-      if (isNewUser || isBuiltInAdmin) 'role': resolvedRole,
+      if (shouldInitializeProfile || isBuiltInAdmin) 'role': resolvedRole,
+      if (shouldInitializeProfile || isBuiltInAdmin) 'status': 'active',
       'lastLoginAt': FieldValue.serverTimestamp(),
-      if (isNewUser) 'createdAt': FieldValue.serverTimestamp(),
+      if (shouldInitializeProfile) 'createdAt': FieldValue.serverTimestamp(),
     };
 
     await profileRef.set(payload, SetOptions(merge: true));
@@ -255,34 +258,16 @@ class _Header extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Expanded(
-                  child: Text(
-                    'PSM Auth',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      height: 1.1,
-                    ),
+                const Text(
+                  'Kindergarten Teaching System',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    height: 1.1,
                   ),
-                ),
-                Chip(
-                  label: Text(firebaseReady ? 'Connected' : 'Setup needed'),
-                  labelStyle: const TextStyle(color: Colors.white),
-                  backgroundColor: firebaseReady
-                      ? const Color(0xFF16A34A)
-                      : const Color(0xFFF59E0B),
-                  side: BorderSide.none,
                 ),
               ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Sign in, create an account, and reset passwords with Firebase Authentication. The UI works now and becomes fully live once Firebase is configured.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.88),
-                    height: 1.5,
-                  ),
             ),
           ],
         ),
@@ -531,16 +516,6 @@ class _AuthCard extends StatelessWidget {
                     child: const Text('Reset password'),
                   ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                firebaseReady
-                    ? 'Firebase is configured, so these actions will call FirebaseAuth.'
-                    : 'Firebase setup is missing, so the screen is running in preview mode.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF64748B),
-                      height: 1.4,
-                    ),
               ),
             ],
           ),

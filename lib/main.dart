@@ -34,7 +34,7 @@ class PsmApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'PSM',
+      title: 'Kindergarten Teaching System',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: colorScheme,

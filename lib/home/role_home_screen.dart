@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/admin_accounts.dart';
 import '../profile/profile_screen.dart';
+import 'admin_user_management_screen.dart';
 import 'schedule_availability_screen.dart';
 
 class RoleHomeScreen extends StatelessWidget {
@@ -22,6 +23,11 @@ class RoleHomeScreen extends StatelessWidget {
       stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
       builder: (context, snapshot) {
         final data = snapshot.data?.data();
+        final status = (data?['status'] as String?)?.trim().toLowerCase();
+        if (status == 'inactive') {
+          return _InactiveAccountScreen(user: user);
+        }
+
         final role = _resolveRole(data, user);
         final displayName = (data?['displayName'] as String?)?.trim();
 
@@ -42,6 +48,16 @@ class RoleHomeScreen extends StatelessWidget {
                 },
                 icon: const Icon(Icons.person_outline),
               ),
+              if (role == 'admin')
+                IconButton(
+                  tooltip: 'Manage users',
+                  onPressed: () async {
+                    await Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const AdminUserManagementScreen(),
+                    ));
+                  },
+                  icon: const Icon(Icons.supervisor_account_outlined),
+                ),
               IconButton(
                 tooltip: 'Sign out',
                 onPressed: () async {
@@ -410,6 +426,52 @@ class _MissingRoleScreen extends StatelessWidget {
               const SizedBox(height: 8),
               const Text(
                 'Ask an admin to assign a role in the users collection before accessing the dashboard.',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InactiveAccountScreen extends StatelessWidget {
+  const _InactiveAccountScreen({required this.user});
+
+  final User user;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Account Disabled'),
+        actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+            },
+            icon: const Icon(Icons.logout),
+          ),
+        ],
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.block_outlined, size: 42, color: Color(0xFF334155)),
+              const SizedBox(height: 12),
+              Text(
+                'This account has been disabled for ${user.email ?? 'sign-in'}.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Contact an administrator to restore access or update the account status.',
                 textAlign: TextAlign.center,
               ),
             ],
