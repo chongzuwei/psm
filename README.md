@@ -12,8 +12,17 @@ Flutter + Firebase starter app.
 
 ```bash
 flutter pub get
-flutter run
+flutter run --dart-define=GEMINI_API_KEY=your_api_key_here
 ```
+
+The student dashboard's **Ask AI** feature uses Gemini. Pass the key at run
+time with `--dart-define`; do not commit the key to the repository. For a
+production app, proxy Gemini through a trusted backend because mobile app
+keys can be extracted.
+
+In VS Code, choose **Run and Debug**, select **psm with Gemini**, press Start,
+and enter the key when prompted. Fully stop and restart the app after changing
+the key; hot reload cannot change compile-time defines.
 
 ## Finish Firebase setup
 

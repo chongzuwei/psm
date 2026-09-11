@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "psm with Gemini",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": [
+        "--dart-define=GEMINI_API_KEY=${input:geminiApiKey}"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "geminiApiKey",
+      "description": "Gemini API key",
+      "type": "promptString",
+      "password": true
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../auth/admin_accounts.dart';
 import '../profile/profile_screen.dart';
 import 'admin_user_management_screen.dart';
+import 'ai_chat_screen.dart';
 import 'schedule_availability_screen.dart';
 
 class RoleHomeScreen extends StatelessWidget {
@@ -85,7 +86,7 @@ class RoleHomeScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 16),
-              ..._roleCards(role),
+              ..._roleCards(role, context),
             ],
           ),
         );
@@ -107,7 +108,7 @@ class RoleHomeScreen extends StatelessWidget {
     return null;
   }
 
-  List<Widget> _roleCards(String role) {
+  List<Widget> _roleCards(String role, BuildContext context) {
     switch (role) {
       case 'admin':
         return const [
@@ -131,11 +132,23 @@ class RoleHomeScreen extends StatelessWidget {
           _FeatureCard(title: 'Notifications', subtitle: 'Receive reminders and important school updates.', icon: Icons.notifications_none_outlined),
         ];
       case 'student':
-        return const [
-          _FeatureCard(title: 'Play Quiz', subtitle: 'Attempt quizzes to test your understanding.', icon: Icons.sports_esports_outlined),
-          _FeatureCard(title: 'Learning Materials', subtitle: 'Open resources for lessons and revision.', icon: Icons.library_books_outlined),
-          _FeatureCard(title: 'Achievements', subtitle: 'Track badges, points, and progress.', icon: Icons.emoji_events_outlined),
-          _FeatureCard(title: 'Ask AI', subtitle: 'Ask questions when you need help with answers.', icon: Icons.smart_toy_outlined),
+        return [
+          const _FeatureCard(title: 'Play Quiz', subtitle: 'Attempt quizzes to test your understanding.', icon: Icons.sports_esports_outlined),
+          const _FeatureCard(title: 'Learning Materials', subtitle: 'Open resources for lessons and revision.', icon: Icons.library_books_outlined),
+          const _FeatureCard(title: 'Achievements', subtitle: 'Track badges, points, and progress.', icon: Icons.emoji_events_outlined),
+          _FeatureCard(
+            title: 'Ask AI',
+            subtitle: 'Ask questions when you need help with answers.',
+            icon: Icons.smart_toy_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => AiChatScreen(
+                  studentId: user.uid,
+                  firebaseReady: firebaseReady,
+                ),
+              ));
+            },
+          ),
         ];
       default:
         return const [
@@ -205,11 +218,13 @@ class _FeatureCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.onTap,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -221,6 +236,8 @@ class _FeatureCard extends StatelessWidget {
         side: BorderSide(color: Colors.blue.shade50),
       ),
       child: ListTile(
+        onTap: onTap,
+        trailing: onTap == null ? null : const Icon(Icons.chevron_right),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: const Color(0xFFE0E7FF),

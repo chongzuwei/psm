@@ -35,6 +35,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /ai_questions/{questionId} {
+      allow create: if signedIn() && request.resource.data.studentId == request.auth.uid;
+      allow read: if signedIn() && resource.data.studentId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     match /{document=**} { allow read, write: if false; }
   }
 }
