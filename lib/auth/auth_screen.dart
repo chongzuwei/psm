@@ -18,9 +18,14 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _ageController = TextEditingController();
+  final _experienceController = TextEditingController();
 
   bool _isSignIn = true;
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
   String _selectedRole = 'student';
 
   @override
@@ -28,6 +33,10 @@ class _AuthScreenState extends State<AuthScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
+    _usernameController.dispose();
+    _phoneController.dispose();
+    _ageController.dispose();
+    _experienceController.dispose();
     super.dispose();
   }
 
@@ -84,6 +93,8 @@ class _AuthScreenState extends State<AuthScreen> {
           setState(() {
             _isSignIn = true;
             _selectedRole = 'student';
+            _ageController.clear();
+                          _experienceController.clear();
           });
         }
       }
@@ -133,24 +144,41 @@ class _AuthScreenState extends State<AuthScreen> {
     final shouldInitializeProfile = isNewUser || !profileSnapshot.exists;
     final normalizedEmail = user.email?.trim().toLowerCase();
     final isBuiltInAdmin = normalizedEmail != null && isBuiltInAdminEmail(normalizedEmail);
-    final resolvedRole = isBuiltInAdmin ? 'admin' : _selectedRole;
+    final storedRole = profileSnapshot.data()?['role'] as String?;
+    final resolvedRole = isBuiltInAdmin
+      ? 'admin'
+      : (!isNewUser && storedRole != null && storedRole.isNotEmpty ? storedRole : _selectedRole);
     final resolvedName = isBuiltInAdmin
       ? builtInAdminName(normalizedEmail)
         : (_nameController.text.trim().isNotEmpty
             ? _nameController.text.trim()
             : user.displayName);
+    final normalizedRole = resolvedRole.trim().toLowerCase();
 
     final payload = <String, dynamic>{
       'uid': user.uid,
       'email': user.email,
       'displayName': resolvedName,
+      if (isNewUser) 'username': _usernameController.text.trim(),
+      if (isNewUser) 'phone': _phoneController.text.trim(),
+      if (isNewUser && normalizedRole == 'student')
+        'age': int.parse(_ageController.text.trim()),
+      if (isNewUser && normalizedRole == 'teacher')
+        'yearsExperience': int.parse(_experienceController.text.trim()),
       if (shouldInitializeProfile || isBuiltInAdmin) 'role': resolvedRole,
       if (shouldInitializeProfile || isBuiltInAdmin) 'status': 'active',
       'lastLoginAt': FieldValue.serverTimestamp(),
       if (shouldInitializeProfile) 'createdAt': FieldValue.serverTimestamp(),
     };
 
-    await profileRef.set(payload, SetOptions(merge: true));
+    final batch = FirebaseFirestore.instance.batch();
+    batch.set(profileRef, payload, SetOptions(merge: true));
+    batch.set(
+      FirebaseFirestore.instance.collection('${normalizedRole}s').doc(user.uid),
+      payload,
+      SetOptions(merge: true),
+    );
+    await batch.commit();
   }
 
   void _showMessage(String message) {
@@ -179,7 +207,12 @@ class _AuthScreenState extends State<AuthScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 children: [
-                  _Header(firebaseReady: widget.firebaseReady),
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 460),
+                      child: _Header(firebaseReady: widget.firebaseReady),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   if (currentUser != null) ...[
                     _SignedInCard(
@@ -189,33 +222,48 @@ class _AuthScreenState extends State<AuthScreen> {
                       },
                     ),
                   ] else ...[
-                    _AuthCard(
-                      isSignIn: _isSignIn,
-                      isLoading: _isLoading,
-                      formKey: _formKey,
-                      emailController: _emailController,
-                      passwordController: _passwordController,
-                      nameController: _nameController,
-                      onSubmit: _submit,
-                      onResetPassword: _resetPassword,
-                      onToggleMode: () {
-                        setState(() {
-                          _isSignIn = !_isSignIn;
-                          if (_isSignIn) {
-                            _selectedRole = 'student';
-                          }
-                        });
-                      },
-                      selectedRole: _selectedRole,
-                      onRoleChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setState(() {
-                          _selectedRole = value;
-                        });
-                      },
-                      firebaseReady: widget.firebaseReady,
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 460),
+                        child: _AuthCard(
+                          isSignIn: _isSignIn,
+                          isLoading: _isLoading,
+                          formKey: _formKey,
+                          emailController: _emailController,
+                          passwordController: _passwordController,
+                          nameController: _nameController,
+                          usernameController: _usernameController,
+                          phoneController: _phoneController,
+                          ageController: _ageController,
+                          experienceController: _experienceController,
+                          onSubmit: _submit,
+                          onResetPassword: _resetPassword,
+                          onToggleMode: () {
+                            setState(() {
+                              _isSignIn = !_isSignIn;
+                              if (_isSignIn) {
+                                _selectedRole = 'student';
+                              }
+                            });
+                          },
+                          selectedRole: _selectedRole,
+                          onRoleChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() {
+                              _selectedRole = value;
+                            });
+                          },
+                          isPasswordVisible: _isPasswordVisible,
+                          onTogglePasswordVisibility: () {
+                            setState(() {
+                              _isPasswordVisible = !_isPasswordVisible;
+                            });
+                          },
+                          firebaseReady: widget.firebaseReady,
+                        ),
+                      ),
                     ),
                   ],
                 ],
@@ -384,11 +432,17 @@ class _AuthCard extends StatelessWidget {
     required this.emailController,
     required this.passwordController,
     required this.nameController,
+    required this.usernameController,
+    required this.phoneController,
+    required this.ageController,
+    required this.experienceController,
     required this.onSubmit,
     required this.onResetPassword,
     required this.onToggleMode,
     required this.selectedRole,
     required this.onRoleChanged,
+    required this.isPasswordVisible,
+    required this.onTogglePasswordVisibility,
     required this.firebaseReady,
   });
 
@@ -398,11 +452,17 @@ class _AuthCard extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final TextEditingController nameController;
+  final TextEditingController usernameController;
+  final TextEditingController phoneController;
+  final TextEditingController ageController;
+  final TextEditingController experienceController;
   final VoidCallback onSubmit;
   final VoidCallback onResetPassword;
   final VoidCallback onToggleMode;
   final String selectedRole;
   final ValueChanged<String?> onRoleChanged;
+  final bool isPasswordVisible;
+  final VoidCallback onTogglePasswordVisibility;
   final bool firebaseReady;
 
   @override
@@ -446,6 +506,15 @@ class _AuthCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
+                TextFormField(
+                  controller: usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => (value?.trim().isEmpty ?? true) ? 'Enter a username' : null,
+                ),
+                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: selectedRole,
                   decoration: const InputDecoration(
@@ -460,6 +529,59 @@ class _AuthCard extends StatelessWidget {
                   onChanged: onRoleChanged,
                 ),
                 const SizedBox(height: 12),
+                TextFormField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone number',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => (value?.trim().isEmpty ?? true) ? 'Enter a phone number' : null,
+                ),
+                const SizedBox(height: 12),
+                if (selectedRole == 'student') ...[
+                  TextFormField(
+                    controller: ageController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Age',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      final age = int.tryParse(text);
+                      if (text.isEmpty) {
+                        return 'Enter your age';
+                      }
+                      if (age == null || age < 3 || age > 120) {
+                        return 'Enter a valid age';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (selectedRole == 'teacher') ...[
+                  TextFormField(
+                    controller: experienceController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Years of experience',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
+                        return 'Enter years of experience';
+                      }
+                      if (int.tryParse(text) == null || int.parse(text) < 0) {
+                        return 'Enter a valid number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
               ],
               TextFormField(
                 controller: emailController,
@@ -482,10 +604,17 @@ class _AuthCard extends StatelessWidget {
               const SizedBox(height: 12),
               TextFormField(
                 controller: passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
+                obscureText: !isPasswordVisible,
+                decoration: InputDecoration(
                   labelText: 'Password',
                   border: OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    onPressed: onTogglePasswordVisibility,
+                    tooltip: isPasswordVisible ? 'Hide password' : 'Show password',
+                    icon: Icon(
+                      isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                    ),
+                  ),
                 ),
                 validator: (value) {
                   final text = value ?? '';

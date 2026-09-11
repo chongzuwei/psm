@@ -35,6 +35,34 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /students/{userId} {
+      allow read: if isAdmin() || (isOwnProfile(userId) && resource.data.role == 'student');
+      allow create, update: if isAdmin() || (
+        isOwnProfile(userId) && request.resource.data.role == 'student'
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /parents/{userId} {
+      allow read: if isAdmin() || (isOwnProfile(userId) && resource.data.role == 'parent');
+      allow create, update: if isAdmin() || (
+        isOwnProfile(userId) && request.resource.data.role == 'parent'
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /teachers/{userId} {
+      allow read: if isAdmin() || (isOwnProfile(userId) && resource.data.role == 'teacher');
+      allow create, update: if isAdmin() || (
+        isOwnProfile(userId) && request.resource.data.role == 'teacher'
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /admins/{userId} {
+      allow read, write: if isAdmin();
+    }
+
     match /ai_questions/{questionId} {
       allow create: if signedIn() && request.resource.data.studentId == request.auth.uid;
       allow read: if signedIn() && resource.data.studentId == request.auth.uid;

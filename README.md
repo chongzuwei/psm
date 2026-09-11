@@ -1,7 +1,10 @@
 # psm
-
+pg.141
 Flutter + Firebase starter app.
+asd@gmail.com
+asd123
 
+admin@psm.com admin123
 ## What’s included
 
 - A polished Firebase auth screen with sign in, sign up, and password reset.
@@ -12,7 +15,8 @@ Flutter + Firebase starter app.
 
 ```bash
 flutter pub get
-flutter run --dart-define=GEMINI_API_KEY=your_api_key_here
+flutter run --dart-define="GEMINI_API_KEY="
+
 ```
 
 The student dashboard's **Ask AI** feature uses Gemini. Pass the key at run
@@ -36,6 +40,11 @@ the key; hot reload cannot change compile-time defines.
 
 The app stores each profile at `users/{uid}`, where `uid` is the Firebase
 Authentication UID.
+
+It also mirrors each profile into one role collection using the same document
+ID: `students/{uid}`, `parents/{uid}`, `teachers/{uid}`, or `admins/{uid}`.
+The `users` document remains the canonical profile and role changes keep the
+role collection in sync.
 
 ```text
 uid, email, displayName, role, status, createdAt, updatedAt, lastLoginAt

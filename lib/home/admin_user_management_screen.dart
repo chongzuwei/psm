@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import '../auth/admin_accounts.dart';
+import '../firebase_options.dart';
 
 class AdminUserManagementScreen extends StatefulWidget {
   const AdminUserManagementScreen({super.key});
@@ -605,14 +607,28 @@ class _EditUserSheetState extends State<_EditUserSheet> {
       final data = widget.doc.data();
       final email = (data['email'] as String?)?.trim();
       final isProtectedAdmin = email != null && isBuiltInAdminEmail(email);
+      final previousRole = (data['role'] as String?)?.trim().toLowerCase();
+      final nextRole = isProtectedAdmin ? 'admin' : _role;
       final payload = <String, dynamic>{
         'displayName': _displayNameController.text.trim(),
-        'role': isProtectedAdmin ? 'admin' : _role,
+        'role': nextRole,
         'status': isProtectedAdmin ? 'active' : _status,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      await widget.doc.reference.set(payload, SetOptions(merge: true));
+      final batch = FirebaseFirestore.instance.batch();
+      batch.set(widget.doc.reference, payload, SetOptions(merge: true));
+      batch.set(
+        FirebaseFirestore.instance.collection('${nextRole}s').doc(widget.doc.id),
+        {...data, ...payload, 'uid': widget.doc.id},
+        SetOptions(merge: true),
+      );
+      if (previousRole != null && previousRole != nextRole) {
+        batch.delete(
+          FirebaseFirestore.instance.collection('${previousRole}s').doc(widget.doc.id),
+        );
+      }
+      await batch.commit();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -729,8 +745,8 @@ class _CreateUserSheet extends StatefulWidget {
 
 class _CreateUserSheetState extends State<_CreateUserSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _uidController = TextEditingController();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _displayNameController = TextEditingController();
   String _role = 'student';
   String _status = 'active';
@@ -738,8 +754,8 @@ class _CreateUserSheetState extends State<_CreateUserSheet> {
 
   @override
   void dispose() {
-    _uidController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     _displayNameController.dispose();
     super.dispose();
   }
@@ -767,16 +783,7 @@ class _CreateUserSheetState extends State<_CreateUserSheet> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Use the Firebase Auth UID for the document id so the app can find this user later.',
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _uidController,
-                  decoration: const InputDecoration(
-                    labelText: 'Auth UID',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) => (value?.trim().isEmpty ?? true) ? 'Enter the Firebase Auth UID' : null,
+                  'Create an account and categorize it with a role and account status.',
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -792,6 +799,21 @@ class _CreateUserSheetState extends State<_CreateUserSheet> {
                     }
                     if (!text.contains('@')) {
                       return 'Enter a valid email address';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Temporary password',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if ((value?.trim().length ?? 0) < 6) {
+                      return 'Use at least 6 characters';
                     }
                     return null;
                   },
@@ -874,23 +896,54 @@ class _CreateUserSheetState extends State<_CreateUserSheet> {
     });
 
     try {
-      final uid = _uidController.text.trim();
-      final email = _emailController.text.trim();
+      final email = _emailController.text.trim().toLowerCase();
       final displayName = _displayNameController.text.trim();
+      if (isBuiltInAdminEmail(email)) {
+        throw StateError('The built-in admin account already exists.');
+      }
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'uid': uid,
-        'email': email,
-        'displayName': displayName,
-        'role': _role,
-        'status': _status,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      final secondaryApp = await Firebase.initializeApp(
+        name: 'admin-user-${DateTime.now().microsecondsSinceEpoch}',
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      try {
+        final credential = await FirebaseAuth.instanceFor(app: secondaryApp)
+            .createUserWithEmailAndPassword(
+              email: email,
+              password: _passwordController.text.trim(),
+            );
+        final user = credential.user;
+        if (user == null) {
+          throw StateError('Firebase Auth did not return the new user.');
+        }
+
+        await user.updateDisplayName(displayName);
+        final payload = <String, dynamic>{
+          'uid': user.uid,
+          'email': email,
+          'displayName': displayName,
+          'role': _role,
+          'status': _status,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        final batch = FirebaseFirestore.instance.batch();
+        batch.set(
+          FirebaseFirestore.instance.collection('users').doc(user.uid),
+          payload,
+        );
+        batch.set(
+          FirebaseFirestore.instance.collection('${_role}s').doc(user.uid),
+          payload,
+        );
+        await batch.commit();
+      } finally {
+        await secondaryApp.delete();
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User profile created.')),
+          const SnackBar(content: Text('User account and profile created.')),
         );
         Navigator.of(context).pop();
       }
