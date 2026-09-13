@@ -61,6 +61,17 @@ firebase use psm2-8c2fc
 firebase deploy --only firestore:rules
 ```
 
+### Document resources
+
+Learning resources use Google Drive or OneDrive links, so Firebase Storage is
+not required. Upload the document there, enable link sharing, and paste the
+complete `https://` link into the app.
+
+Teacher sign-up requires a supporting document link. Upload the document to
+Google Drive or OneDrive, enable link sharing, and paste the complete `https://`
+link into the teacher sign-up form. Admins can open that review link from
+**Manage Users** without using Firebase Storage or upgrading the Firebase plan.
+
 Signing up in the app will create the Firebase Auth account and its matching
 Firestore profile automatically.
 

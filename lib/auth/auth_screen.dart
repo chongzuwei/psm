@@ -22,6 +22,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _phoneController = TextEditingController();
   final _ageController = TextEditingController();
   final _experienceController = TextEditingController();
+  final _teacherDocumentUrlController = TextEditingController();
 
   bool _isSignIn = true;
   bool _isLoading = false;
@@ -37,11 +38,17 @@ class _AuthScreenState extends State<AuthScreen> {
     _phoneController.dispose();
     _ageController.dispose();
     _experienceController.dispose();
+    _teacherDocumentUrlController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (!_isSignIn && _selectedRole == 'teacher' && _teacherDocumentUrlController.text.trim().isEmpty) {
+      _showMessage('Paste a Google Drive or OneDrive document link for review.');
       return;
     }
 
@@ -86,7 +93,16 @@ class _AuthScreenState extends State<AuthScreen> {
           await credential.user?.updateDisplayName(displayName);
         }
 
-        await _upsertUserProfile(credential.user, isNewUser: true);
+        final documentUrl = _selectedRole == 'teacher'
+          ? _teacherDocumentUrlController.text.trim()
+          : null;
+
+        await _upsertUserProfile(
+          credential.user,
+          isNewUser: true,
+          teacherDocumentUrl: documentUrl,
+          teacherDocumentName: 'External document link',
+        );
 
         _showMessage('Account created successfully.');
         if (mounted) {
@@ -94,7 +110,8 @@ class _AuthScreenState extends State<AuthScreen> {
             _isSignIn = true;
             _selectedRole = 'student';
             _ageController.clear();
-                          _experienceController.clear();
+            _experienceController.clear();
+            _teacherDocumentUrlController.clear();
           });
         }
       }
@@ -134,7 +151,12 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  Future<void> _upsertUserProfile(User? user, {required bool isNewUser}) async {
+  Future<void> _upsertUserProfile(
+    User? user, {
+    required bool isNewUser,
+    String? teacherDocumentUrl,
+    String? teacherDocumentName,
+  }) async {
     if (user == null || !widget.firebaseReady) {
       return;
     }
@@ -165,8 +187,14 @@ class _AuthScreenState extends State<AuthScreen> {
         'age': int.parse(_ageController.text.trim()),
       if (isNewUser && normalizedRole == 'teacher')
         'yearsExperience': int.parse(_experienceController.text.trim()),
+      if (isNewUser && normalizedRole == 'teacher') ...{
+        'teacherDocumentUrl': teacherDocumentUrl,
+        'teacherDocumentName': teacherDocumentName,
+        'teacherDocumentStatus': 'pending_review',
+      },
       if (shouldInitializeProfile || isBuiltInAdmin) 'role': resolvedRole,
-      if (shouldInitializeProfile || isBuiltInAdmin) 'status': 'active',
+      if (shouldInitializeProfile || isBuiltInAdmin)
+        'status': normalizedRole == 'teacher' ? 'pending_review' : 'active',
       'lastLoginAt': FieldValue.serverTimestamp(),
       if (shouldInitializeProfile) 'createdAt': FieldValue.serverTimestamp(),
     };
@@ -236,6 +264,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           phoneController: _phoneController,
                           ageController: _ageController,
                           experienceController: _experienceController,
+                          teacherDocumentUrlController: _teacherDocumentUrlController,
                           onSubmit: _submit,
                           onResetPassword: _resetPassword,
                           onToggleMode: () {
@@ -436,6 +465,7 @@ class _AuthCard extends StatelessWidget {
     required this.phoneController,
     required this.ageController,
     required this.experienceController,
+    required this.teacherDocumentUrlController,
     required this.onSubmit,
     required this.onResetPassword,
     required this.onToggleMode,
@@ -456,6 +486,7 @@ class _AuthCard extends StatelessWidget {
   final TextEditingController phoneController;
   final TextEditingController ageController;
   final TextEditingController experienceController;
+  final TextEditingController teacherDocumentUrlController;
   final VoidCallback onSubmit;
   final VoidCallback onResetPassword;
   final VoidCallback onToggleMode;
@@ -576,6 +607,26 @@ class _AuthCard extends StatelessWidget {
                       }
                       if (int.tryParse(text) == null || int.parse(text) < 0) {
                         return 'Enter a valid number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: teacherDocumentUrlController,
+                    keyboardType: TextInputType.url,
+                    decoration: const InputDecoration(
+                      labelText: 'Google Drive / OneDrive document link *',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.link),
+                    ),
+                    validator: (value) {
+                      final text = value?.trim() ?? '';
+                      if (text.isEmpty) {
+                        return 'Paste a document link';
+                      }
+                      if (text.isNotEmpty && Uri.tryParse(text)?.hasScheme != true) {
+                        return 'Enter a complete link starting with https://';
                       }
                       return null;
                     },

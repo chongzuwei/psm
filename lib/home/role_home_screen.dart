@@ -6,6 +6,7 @@ import '../auth/admin_accounts.dart';
 import '../profile/profile_screen.dart';
 import 'admin_user_management_screen.dart';
 import 'ai_chat_screen.dart';
+import 'learning_resources_screen.dart';
 import 'schedule_availability_screen.dart';
 
 class RoleHomeScreen extends StatelessWidget {
@@ -27,6 +28,9 @@ class RoleHomeScreen extends StatelessWidget {
         final status = (data?['status'] as String?)?.trim().toLowerCase();
         if (status == 'inactive') {
           return _InactiveAccountScreen(user: user);
+        }
+        if (status == 'pending_review') {
+          return _PendingReviewScreen(user: user);
         }
 
         final role = _resolveRole(data, user);
@@ -89,6 +93,25 @@ class RoleHomeScreen extends StatelessWidget {
               ..._roleCards(role, context),
             ],
           ),
+          bottomNavigationBar: _DashboardBottomNav(
+            onMaterialsPressed: role == 'student'
+                ? () async {
+                    await Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => LearningResourcesScreen(user: user, canManage: false),
+                    ));
+                  }
+                : null,
+            onSchedulePressed: () async {
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const ScheduleAvailabilityScreen(),
+              ));
+            },
+            onProfilePressed: () async {
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => ProfileScreen(user: user, firebaseReady: firebaseReady),
+              ));
+            },
+          ),
         );
       },
     );
@@ -111,16 +134,43 @@ class RoleHomeScreen extends StatelessWidget {
   List<Widget> _roleCards(String role, BuildContext context) {
     switch (role) {
       case 'admin':
-        return const [
+        return [
           _FeatureCard(title: 'Manage Users', subtitle: 'Create, update roles, and deactivate accounts.', icon: Icons.supervisor_account_outlined),
           _FeatureCard(title: 'Schedule Availability', subtitle: 'Organize learning slots and avoid conflicts.', icon: Icons.calendar_month_outlined),
-          _FeatureCard(title: 'Learning Materials', subtitle: 'Review and delete outdated modules.', icon: Icons.menu_book_outlined),
+          _FeatureCard(
+            title: 'Learning Materials',
+            subtitle: 'Review and delete outdated modules.',
+            icon: Icons.menu_book_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => LearningResourcesScreen(
+                  user: user,
+                  canManage: false,
+                  canDelete: true,
+                ),
+              ));
+            },
+          ),
           _FeatureCard(title: 'Payment Notifications', subtitle: 'Receive parent payment updates and status alerts.', icon: Icons.notifications_active_outlined),
         ];
       case 'teacher':
-        return const [
+        return [
           _FeatureCard(title: 'Manage Quizzes', subtitle: 'Create and publish quizzes for students.', icon: Icons.quiz_outlined),
-          _FeatureCard(title: 'Upload Resources', subtitle: 'Share notes and study materials.', icon: Icons.upload_file_outlined),
+          _FeatureCard(
+            title: 'Upload Resources',
+            subtitle: 'Share notes and study materials.',
+            icon: Icons.upload_file_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => LearningResourcesScreen(
+                  user: user,
+                  canManage: true,
+                  canDelete: true,
+                  canUpload: true,
+                ),
+              ));
+            },
+          ),
           _FeatureCard(title: 'Parent Messaging', subtitle: 'Send updates and discuss student progress.', icon: Icons.forum_outlined),
           _FeatureCard(title: 'Feedback and Analytics', subtitle: 'Review student feedback and class performance.', icon: Icons.insights_outlined),
         ];
@@ -134,7 +184,16 @@ class RoleHomeScreen extends StatelessWidget {
       case 'student':
         return [
           const _FeatureCard(title: 'Play Quiz', subtitle: 'Attempt quizzes to test your understanding.', icon: Icons.sports_esports_outlined),
-          const _FeatureCard(title: 'Learning Materials', subtitle: 'Open resources for lessons and revision.', icon: Icons.library_books_outlined),
+          _FeatureCard(
+            title: 'Learning Materials',
+            subtitle: 'Open resources for lessons and revision.',
+            icon: Icons.library_books_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => LearningResourcesScreen(user: user, canManage: false),
+              ));
+            },
+          ),
           const _FeatureCard(title: 'Achievements', subtitle: 'Track badges, points, and progress.', icon: Icons.emoji_events_outlined),
           _FeatureCard(
             title: 'Ask AI',
@@ -162,6 +221,137 @@ class RoleHomeScreen extends StatelessWidget {
       return role;
     }
     return '${role[0].toUpperCase()}${role.substring(1)}';
+  }
+}
+
+class _DashboardBottomNav extends StatelessWidget {
+  const _DashboardBottomNav({
+    required this.onMaterialsPressed,
+    required this.onSchedulePressed,
+    required this.onProfilePressed,
+  });
+
+  final VoidCallback? onMaterialsPressed;
+  final VoidCallback onSchedulePressed;
+  final VoidCallback onProfilePressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Container(
+        height: 58,
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0868E8),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x220F62C9),
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _BottomNavItem(
+                label: 'Home',
+                icon: Icons.home_rounded,
+                selected: true,
+                onTap: () {},
+              ),
+            ),
+            Expanded(
+              child: _BottomNavItem(
+                label: 'Hours',
+                icon: Icons.calendar_month_rounded,
+                selected: false,
+                onTap: onSchedulePressed,
+              ),
+            ),
+            if (onMaterialsPressed != null)
+              Expanded(
+                child: _BottomNavItem(
+                  label: 'Materials',
+                  icon: Icons.menu_book_rounded,
+                  selected: false,
+                  onTap: onMaterialsPressed!,
+                ),
+              ),
+            Expanded(
+              child: _BottomNavItem(
+                label: 'Profile',
+                icon: Icons.person_outline_rounded,
+                selected: false,
+                onTap: onProfilePressed,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNavItem extends StatelessWidget {
+  const _BottomNavItem({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18),
+        if (selected) ...[
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ],
+    );
+
+    return Semantics(
+      button: true,
+      label: label,
+      selected: selected,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: IconTheme(
+              data: IconThemeData(color: selected ? const Color(0xFF0868E8) : Colors.white),
+              child: DefaultTextStyle.merge(
+                style: TextStyle(color: selected ? const Color(0xFF0868E8) : Colors.white),
+                child: content,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -489,6 +679,50 @@ class _InactiveAccountScreen extends StatelessWidget {
               const SizedBox(height: 8),
               const Text(
                 'Contact an administrator to restore access or update the account status.',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PendingReviewScreen extends StatelessWidget {
+  const _PendingReviewScreen({required this.user});
+
+  final User user;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Application Pending'),
+        actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            onPressed: () async => FirebaseAuth.instance.signOut(),
+            icon: const Icon(Icons.logout),
+          ),
+        ],
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.hourglass_top_rounded, size: 48, color: Color(0xFF2563EB)),
+              const SizedBox(height: 12),
+              Text(
+                'Your teacher application is under review.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'An administrator will review your supporting document before granting dashboard access. Signed in as ${user.email ?? 'teacher'}.',
                 textAlign: TextAlign.center,
               ),
             ],

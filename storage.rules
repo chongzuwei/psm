@@ -1,0 +1,29 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn() && request.auth.token.email == 'admin@psm.com';
+    }
+    function isTeacher(userId) {
+      return signedIn() &&
+        firestore.get(/databases/(default)/documents/users/$(userId)).data.role == 'teacher';
+    }
+
+    match /learning_resources/{userId}/{fileName} {
+      allow read: if signedIn();
+      allow write: if isAdmin() || (isTeacher(userId) && request.auth.uid == userId);
+      allow delete: if isAdmin() || (isTeacher(userId) && request.auth.uid == userId);
+    }
+
+    match /teacher_applications/{userId}/{fileName} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow write: if signedIn() && request.auth.uid == userId;
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == userId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

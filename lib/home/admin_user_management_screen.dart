@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../auth/admin_accounts.dart';
 import '../firebase_options.dart';
@@ -372,8 +373,18 @@ class _UserCard extends StatelessWidget {
                   _ChipLabel(label: role, icon: Icons.badge_outlined),
                   _ChipLabel(label: status, icon: status == 'active' ? Icons.verified_user_outlined : Icons.pause_circle_outline),
                   if (isProtectedAdmin) const _ChipLabel(label: 'Protected admin', icon: Icons.lock_outline),
+                  if (_hasTeacherDocument(data))
+                    const _ChipLabel(label: 'Document pending review', icon: Icons.description_outlined),
                 ],
               ),
+              if (_hasTeacherDocument(data)) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => _openTeacherDocument(context, data),
+                  icon: const Icon(Icons.open_in_new),
+                  label: Text(data['teacherDocumentName'] as String? ?? 'Open supporting document'),
+                ),
+              ],
             ],
           ),
         ),
@@ -415,6 +426,23 @@ class _UserCard extends StatelessWidget {
       return words.first.characters.first.toUpperCase();
     }
     return '${words.first.characters.first}${words.last.characters.first}'.toUpperCase();
+  }
+
+  bool _hasTeacherDocument(Map<String, dynamic> data) {
+    return _roleLabel(data) == 'teacher' &&
+        (data['teacherDocumentUrl'] as String?)?.isNotEmpty == true &&
+        data['teacherDocumentStatus'] != 'approved';
+  }
+
+  Future<void> _openTeacherDocument(BuildContext context, Map<String, dynamic> data) async {
+    final url = data['teacherDocumentUrl'] as String?;
+    if (url == null || !await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to open supporting document.')),
+        );
+      }
+    }
   }
 }
 
@@ -543,6 +571,7 @@ class _EditUserSheetState extends State<_EditUserSheet> {
                   ),
                   items: const [
                     DropdownMenuItem(value: 'active', child: Text('Active')),
+                    DropdownMenuItem(value: 'pending_review', child: Text('Pending review')),
                     DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
                   ],
                   onChanged: isProtectedAdmin
@@ -565,6 +594,17 @@ class _EditUserSheetState extends State<_EditUserSheet> {
                     label: Text(_saving ? 'Saving...' : 'Save changes'),
                   ),
                 ),
+                if (_role == 'teacher' && _status == 'pending_review') ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: _saving ? null : _approveTeacher,
+                      icon: const Icon(Icons.verified_outlined),
+                      label: const Text('Approve teacher'),
+                    ),
+                  ),
+                ],
                 if (!isProtectedAdmin && widget.doc.id != widget.currentUserId) ...[
                   const SizedBox(height: 8),
                   SizedBox(
@@ -648,6 +688,41 @@ class _EditUserSheetState extends State<_EditUserSheet> {
           _saving = false;
         });
       }
+    }
+  }
+
+  Future<void> _approveTeacher() async {
+    setState(() => _saving = true);
+    try {
+      final data = widget.doc.data();
+      final payload = <String, dynamic>{
+        'status': 'active',
+        'teacherDocumentStatus': 'approved',
+        'approvedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      final batch = FirebaseFirestore.instance.batch();
+      batch.set(widget.doc.reference, payload, SetOptions(merge: true));
+      batch.set(
+        FirebaseFirestore.instance.collection('teachers').doc(widget.doc.id),
+        {...data, ...payload, 'uid': widget.doc.id},
+        SetOptions(merge: true),
+      );
+      await batch.commit();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Teacher approved successfully.')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Approval failed: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 

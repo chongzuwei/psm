@@ -13,6 +13,11 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function isTeacher() {
+      return signedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+
     match /users/{userId} {
       allow read: if isOwnProfile(userId) || isAdmin();
 
@@ -21,7 +26,9 @@ service cloud.firestore {
         request.resource.data.uid == request.auth.uid &&
         request.resource.data.email == request.auth.token.email &&
         request.resource.data.role in ['student', 'teacher', 'parent'] &&
-        request.resource.data.status == 'active'
+        request.resource.data.status == (
+          request.resource.data.role == 'teacher' ? 'pending_review' : 'active'
+        )
       );
 
       allow update: if isAdmin() || (
@@ -67,6 +74,13 @@ service cloud.firestore {
       allow create: if signedIn() && request.resource.data.studentId == request.auth.uid;
       allow read: if signedIn() && resource.data.studentId == request.auth.uid;
       allow update, delete: if false;
+    }
+
+    match /learning_resources/{resourceId} {
+      allow read: if signedIn();
+      allow create: if isTeacher() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAdmin() ||
+        (isTeacher() && resource.data.ownerId == request.auth.uid);
     }
 
     match /{document=**} { allow read, write: if false; }
