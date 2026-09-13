@@ -7,6 +7,7 @@ import '../profile/profile_screen.dart';
 import 'admin_user_management_screen.dart';
 import 'ai_chat_screen.dart';
 import 'learning_resources_screen.dart';
+import 'quiz_management_screen.dart';
 import 'schedule_availability_screen.dart';
 
 class RoleHomeScreen extends StatelessWidget {
@@ -155,7 +156,16 @@ class RoleHomeScreen extends StatelessWidget {
         ];
       case 'teacher':
         return [
-          _FeatureCard(title: 'Manage Quizzes', subtitle: 'Create and publish quizzes for students.', icon: Icons.quiz_outlined),
+          _FeatureCard(
+            title: 'Manage Quizzes',
+            subtitle: 'Create and publish quizzes for students.',
+            icon: Icons.quiz_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => QuizManagementScreen(user: user),
+              ));
+            },
+          ),
           _FeatureCard(
             title: 'Upload Resources',
             subtitle: 'Share notes and study materials.',

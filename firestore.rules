@@ -83,6 +83,13 @@ service cloud.firestore {
         (isTeacher() && resource.data.ownerId == request.auth.uid);
     }
 
+    match /quizzes/{quizId} {
+      allow read: if signedIn();
+      allow create: if isTeacher() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAdmin() ||
+        (isTeacher() && resource.data.ownerId == request.auth.uid);
+    }
+
     match /{document=**} { allow read, write: if false; }
   }
 }
