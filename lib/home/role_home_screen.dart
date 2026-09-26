@@ -6,6 +6,7 @@ import '../auth/admin_accounts.dart';
 import '../profile/profile_screen.dart';
 import 'admin_user_management_screen.dart';
 import 'ai_chat_screen.dart';
+import 'achievements_screen.dart';
 import 'feedback_analytics_screen.dart';
 import 'feedback_submission_screen.dart';
 import 'learning_resources_screen.dart';
@@ -340,10 +341,17 @@ class RoleHomeScreen extends StatelessWidget {
               );
             },
           ),
-          const _FeatureCard(
+          _FeatureCard(
             title: 'Achievements',
             subtitle: 'Track badges, points, and progress.',
             icon: Icons.emoji_events_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AchievementsScreen(user: user),
+                ),
+              );
+            },
           ),
           _FeatureCard(
             title: 'Ask AI',

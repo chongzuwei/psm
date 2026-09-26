@@ -121,7 +121,8 @@ service cloud.firestore {
       allow read: if (isTeacher() && resource.data.teacherId == request.auth.uid) ||
         (signedIn() &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'parent' &&
-         resource.data.studentId is string);
+         resource.data.studentId is string) ||
+        (signedIn() && resource.data.studentId == request.auth.uid);
     }
 
     match /messages/{messageId} {
