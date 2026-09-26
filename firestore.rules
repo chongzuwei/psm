@@ -18,6 +18,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
     }
 
+    function isStudentOrParent() {
+      return signedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['student', 'parent'];
+    }
+
     match /users/{userId} {
       allow read: if signedIn();
 
@@ -93,6 +98,22 @@ service cloud.firestore {
       allow create: if isTeacher() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isAdmin() ||
         (isTeacher() && resource.data.ownerId == request.auth.uid);
+    }
+
+    match /feedback/{feedbackId} {
+      allow create: if isStudentOrParent() &&
+        request.resource.data.authorId == request.auth.uid &&
+        request.resource.data.authorRole == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role &&
+        request.resource.data.teacherId is string &&
+        request.resource.data.rating is number &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5 &&
+        request.resource.data.text is string;
+      allow read: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+
+    match /attempts/{attemptId} {
+      allow read: if isTeacher() && resource.data.teacherId == request.auth.uid;
     }
 
     match /messages/{messageId} {

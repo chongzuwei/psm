@@ -6,6 +6,8 @@ import '../auth/admin_accounts.dart';
 import '../profile/profile_screen.dart';
 import 'admin_user_management_screen.dart';
 import 'ai_chat_screen.dart';
+import 'feedback_analytics_screen.dart';
+import 'feedback_submission_screen.dart';
 import 'learning_resources_screen.dart';
 import 'messages_screen.dart';
 import 'quiz_management_screen.dart';
@@ -24,7 +26,10 @@ class RoleHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
       builder: (context, snapshot) {
         final data = snapshot.data?.data();
         final status = (data?['status'] as String?)?.trim().toLowerCase();
@@ -49,9 +54,14 @@ class RoleHomeScreen extends StatelessWidget {
               IconButton(
                 tooltip: 'Edit profile',
                 onPressed: () async {
-                  await Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => ProfileScreen(user: user, firebaseReady: firebaseReady),
-                  ));
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ProfileScreen(
+                        user: user,
+                        firebaseReady: firebaseReady,
+                      ),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.person_outline),
               ),
@@ -59,9 +69,11 @@ class RoleHomeScreen extends StatelessWidget {
                 IconButton(
                   tooltip: 'Manage users',
                   onPressed: () async {
-                    await Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const AdminUserManagementScreen(),
-                    ));
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AdminUserManagementScreen(),
+                      ),
+                    );
                   },
                   icon: const Icon(Icons.supervisor_account_outlined),
                 ),
@@ -86,9 +98,11 @@ class RoleHomeScreen extends StatelessWidget {
               ScheduleAvailabilitySummary(
                 isAdmin: role == 'admin',
                 onManagePressed: () async {
-                  await Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const ScheduleAvailabilityScreen(),
-                  ));
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ScheduleAvailabilityScreen(),
+                    ),
+                  );
                 },
               ),
               const SizedBox(height: 16),
@@ -98,20 +112,30 @@ class RoleHomeScreen extends StatelessWidget {
           bottomNavigationBar: _DashboardBottomNav(
             onMaterialsPressed: role == 'student'
                 ? () async {
-                    await Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => LearningResourcesScreen(user: user, canManage: false),
-                    ));
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => LearningResourcesScreen(
+                          user: user,
+                          canManage: false,
+                        ),
+                      ),
+                    );
                   }
                 : null,
             onSchedulePressed: () async {
-              await Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const ScheduleAvailabilityScreen(),
-              ));
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ScheduleAvailabilityScreen(),
+                ),
+              );
             },
             onProfilePressed: () async {
-              await Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => ProfileScreen(user: user, firebaseReady: firebaseReady),
-              ));
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      ProfileScreen(user: user, firebaseReady: firebaseReady),
+                ),
+              );
             },
           ),
         );
@@ -137,23 +161,37 @@ class RoleHomeScreen extends StatelessWidget {
     switch (role) {
       case 'admin':
         return [
-          _FeatureCard(title: 'Manage Users', subtitle: 'Create, update roles, and deactivate accounts.', icon: Icons.supervisor_account_outlined),
-          _FeatureCard(title: 'Schedule Availability', subtitle: 'Organize learning slots and avoid conflicts.', icon: Icons.calendar_month_outlined),
+          _FeatureCard(
+            title: 'Manage Users',
+            subtitle: 'Create, update roles, and deactivate accounts.',
+            icon: Icons.supervisor_account_outlined,
+          ),
+          _FeatureCard(
+            title: 'Schedule Availability',
+            subtitle: 'Organize learning slots and avoid conflicts.',
+            icon: Icons.calendar_month_outlined,
+          ),
           _FeatureCard(
             title: 'Learning Materials',
             subtitle: 'Review and delete outdated modules.',
             icon: Icons.menu_book_outlined,
             onTap: () async {
-              await Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => LearningResourcesScreen(
-                  user: user,
-                  canManage: false,
-                  canDelete: true,
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => LearningResourcesScreen(
+                    user: user,
+                    canManage: false,
+                    canDelete: true,
+                  ),
                 ),
-              ));
+              );
             },
           ),
-          _FeatureCard(title: 'Payment Notifications', subtitle: 'Receive parent payment updates and status alerts.', icon: Icons.notifications_active_outlined),
+          _FeatureCard(
+            title: 'Payment Notifications',
+            subtitle: 'Receive parent payment updates and status alerts.',
+            icon: Icons.notifications_active_outlined,
+          ),
         ];
       case 'teacher':
         return [
@@ -162,9 +200,11 @@ class RoleHomeScreen extends StatelessWidget {
             subtitle: 'Create and publish quizzes for students.',
             icon: Icons.quiz_outlined,
             onTap: () async {
-              await Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => QuizManagementScreen(user: user),
-              ));
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => QuizManagementScreen(user: user),
+                ),
+              );
             },
           ),
           _FeatureCard(
@@ -172,14 +212,16 @@ class RoleHomeScreen extends StatelessWidget {
             subtitle: 'Share notes and study materials.',
             icon: Icons.upload_file_outlined,
             onTap: () async {
-              await Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => LearningResourcesScreen(
-                  user: user,
-                  canManage: true,
-                  canDelete: true,
-                  canUpload: true,
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => LearningResourcesScreen(
+                    user: user,
+                    canManage: true,
+                    canDelete: true,
+                    canUpload: true,
+                  ),
                 ),
-              ));
+              );
             },
           ),
           _FeatureCard(
@@ -187,10 +229,25 @@ class RoleHomeScreen extends StatelessWidget {
             subtitle: 'Send updates and discuss student progress.',
             icon: Icons.forum_outlined,
             onTap: () async {
-              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => MessagesScreen(user: user, role: role)));
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => MessagesScreen(user: user, role: role),
+                ),
+              );
             },
           ),
-          _FeatureCard(title: 'Feedback and Analytics', subtitle: 'Review student feedback and class performance.', icon: Icons.insights_outlined),
+          _FeatureCard(
+            title: 'Feedback and Analytics',
+            subtitle: 'Review student feedback and class performance.',
+            icon: Icons.insights_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => FeedbackAnalyticsScreen(user: user),
+                ),
+              );
+            },
+          ),
         ];
       case 'parent':
         return [
@@ -199,44 +256,103 @@ class RoleHomeScreen extends StatelessWidget {
             subtitle: 'Communicate with teachers about progress.',
             icon: Icons.chat_bubble_outline,
             onTap: () async {
-              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => MessagesScreen(user: user, role: role)));
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => MessagesScreen(user: user, role: role),
+                ),
+              );
             },
           ),
-          _FeatureCard(title: 'Progress Tracking', subtitle: 'Monitor child achievements and results.', icon: Icons.trending_up_outlined),
-          _FeatureCard(title: 'Payments', subtitle: 'Make payments and view receipt history.', icon: Icons.payments_outlined),
-          _FeatureCard(title: 'Notifications', subtitle: 'Receive reminders and important school updates.', icon: Icons.notifications_none_outlined),
+          _FeatureCard(
+            title: 'Give Feedback',
+            subtitle: 'Rate a lesson and help your teacher improve.',
+            icon: Icons.rate_review_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      FeedbackSubmissionScreen(user: user, role: role),
+                ),
+              );
+            },
+          ),
+          _FeatureCard(
+            title: 'Progress Tracking',
+            subtitle: 'Monitor child achievements and results.',
+            icon: Icons.trending_up_outlined,
+          ),
+          _FeatureCard(
+            title: 'Payments',
+            subtitle: 'Make payments and view receipt history.',
+            icon: Icons.payments_outlined,
+          ),
+          _FeatureCard(
+            title: 'Notifications',
+            subtitle: 'Receive reminders and important school updates.',
+            icon: Icons.notifications_none_outlined,
+          ),
         ];
       case 'student':
         return [
-          const _FeatureCard(title: 'Play Quiz', subtitle: 'Attempt quizzes to test your understanding.', icon: Icons.sports_esports_outlined),
+          const _FeatureCard(
+            title: 'Play Quiz',
+            subtitle: 'Attempt quizzes to test your understanding.',
+            icon: Icons.sports_esports_outlined,
+          ),
           _FeatureCard(
             title: 'Learning Materials',
             subtitle: 'Open resources for lessons and revision.',
             icon: Icons.library_books_outlined,
             onTap: () async {
-              await Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => LearningResourcesScreen(user: user, canManage: false),
-              ));
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      LearningResourcesScreen(user: user, canManage: false),
+                ),
+              );
             },
           ),
-          const _FeatureCard(title: 'Achievements', subtitle: 'Track badges, points, and progress.', icon: Icons.emoji_events_outlined),
+          const _FeatureCard(
+            title: 'Achievements',
+            subtitle: 'Track badges, points, and progress.',
+            icon: Icons.emoji_events_outlined,
+          ),
           _FeatureCard(
             title: 'Ask AI',
             subtitle: 'Ask questions when you need help with answers.',
             icon: Icons.smart_toy_outlined,
             onTap: () async {
-              await Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => AiChatScreen(
-                  studentId: user.uid,
-                  firebaseReady: firebaseReady,
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AiChatScreen(
+                    studentId: user.uid,
+                    firebaseReady: firebaseReady,
+                  ),
                 ),
-              ));
+              );
+            },
+          ),
+          _FeatureCard(
+            title: 'Give Feedback',
+            subtitle: 'Rate a lesson and help your teacher improve.',
+            icon: Icons.rate_review_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      FeedbackSubmissionScreen(user: user, role: role),
+                ),
+              );
             },
           ),
         ];
       default:
         return const [
-          _FeatureCard(title: 'Access Pending', subtitle: 'Your role is not recognized yet. Contact admin.', icon: Icons.warning_amber_outlined),
+          _FeatureCard(
+            title: 'Access Pending',
+            subtitle: 'Your role is not recognized yet. Contact admin.',
+            icon: Icons.warning_amber_outlined,
+          ),
         ];
     }
   }
@@ -367,9 +483,13 @@ class _BottomNavItem extends StatelessWidget {
           ),
           child: Center(
             child: IconTheme(
-              data: IconThemeData(color: selected ? const Color(0xFF0868E8) : Colors.white),
+              data: IconThemeData(
+                color: selected ? const Color(0xFF0868E8) : Colors.white,
+              ),
               child: DefaultTextStyle.merge(
-                style: TextStyle(color: selected ? const Color(0xFF0868E8) : Colors.white),
+                style: TextStyle(
+                  color: selected ? const Color(0xFF0868E8) : Colors.white,
+                ),
                 child: content,
               ),
             ),
@@ -417,10 +537,7 @@ class _WelcomeCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Role: ${role[0].toUpperCase()}${role.substring(1)}',
-            style: const TextStyle(
-              color: Color(0xFFE2E8F0),
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
           ),
         ],
       ),
@@ -458,10 +575,7 @@ class _FeatureCard extends StatelessWidget {
           backgroundColor: const Color(0xFFE0E7FF),
           child: Icon(icon, color: const Color(0xFF1D4ED8)),
         ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
         subtitle: Text(subtitle),
       ),
     );
@@ -481,7 +595,10 @@ class ScheduleAvailabilitySummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('schedules').orderBy('sortKey').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('schedules')
+          .orderBy('sortKey')
+          .snapshots(),
       builder: (context, snapshot) {
         final slots = (snapshot.data?.docs ?? const [])
             .where((doc) => doc.data()['active'] != false)
@@ -502,7 +619,10 @@ class ScheduleAvailabilitySummary extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       backgroundColor: const Color(0xFFE0E7FF),
-                      child: const Icon(Icons.calendar_month_outlined, color: Color(0xFF1D4ED8)),
+                      child: const Icon(
+                        Icons.calendar_month_outlined,
+                        color: Color(0xFF1D4ED8),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Expanded(
@@ -511,10 +631,15 @@ class ScheduleAvailabilitySummary extends StatelessWidget {
                         children: [
                           Text(
                             'Teaching Hours',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
                           ),
                           SizedBox(height: 2),
-                          Text('Current availability shared with students and staff.'),
+                          Text(
+                            'Current availability shared with students and staff.',
+                          ),
                         ],
                       ),
                     ),
@@ -543,7 +668,9 @@ class ScheduleAvailabilitySummary extends StatelessWidget {
                   )
                 else
                   Column(
-                    children: slots.map((doc) => _ScheduleSlotTile(data: doc.data())).toList(),
+                    children: slots
+                        .map((doc) => _ScheduleSlotTile(data: doc.data()))
+                        .toList(),
                   ),
               ],
             ),
@@ -648,7 +775,11 @@ class _MissingRoleScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.lock_outline, size: 42, color: Color(0xFF334155)),
+              const Icon(
+                Icons.lock_outline,
+                size: 42,
+                color: Color(0xFF334155),
+              ),
               const SizedBox(height: 12),
               Text(
                 'No role assigned for ${user.email ?? 'this account'}.',
@@ -694,7 +825,11 @@ class _InactiveAccountScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.block_outlined, size: 42, color: Color(0xFF334155)),
+              const Icon(
+                Icons.block_outlined,
+                size: 42,
+                color: Color(0xFF334155),
+              ),
               const SizedBox(height: 12),
               Text(
                 'This account has been disabled for ${user.email ?? 'sign-in'}.',
@@ -738,7 +873,11 @@ class _PendingReviewScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.hourglass_top_rounded, size: 48, color: Color(0xFF2563EB)),
+              const Icon(
+                Icons.hourglass_top_rounded,
+                size: 48,
+                color: Color(0xFF2563EB),
+              ),
               const SizedBox(height: 12),
               Text(
                 'Your teacher application is under review.',
