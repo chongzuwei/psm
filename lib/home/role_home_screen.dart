@@ -12,6 +12,7 @@ import 'learning_resources_screen.dart';
 import 'messages_screen.dart';
 import 'quiz_management_screen.dart';
 import 'quiz_play_screen.dart';
+import 'progress_tracking_screen.dart';
 import 'schedule_availability_screen.dart';
 
 class RoleHomeScreen extends StatelessWidget {
@@ -249,6 +250,19 @@ class RoleHomeScreen extends StatelessWidget {
               );
             },
           ),
+          _FeatureCard(
+            title: 'Progress Tracking',
+            subtitle: 'Monitor student performance and results.',
+            icon: Icons.trending_up_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      ProgressTrackingScreen(user: user, role: role),
+                ),
+              );
+            },
+          ),
         ];
       case 'parent':
         return [
@@ -281,6 +295,14 @@ class RoleHomeScreen extends StatelessWidget {
             title: 'Progress Tracking',
             subtitle: 'Monitor child achievements and results.',
             icon: Icons.trending_up_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      ProgressTrackingScreen(user: user, role: role),
+                ),
+              );
+            },
           ),
           _FeatureCard(
             title: 'Payments',

@@ -118,7 +118,10 @@ service cloud.firestore {
         request.resource.data.quizId is string &&
         request.resource.data.teacherId is string &&
         request.resource.data.score is number;
-      allow read: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      allow read: if (isTeacher() && resource.data.teacherId == request.auth.uid) ||
+        (signedIn() &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'parent' &&
+         resource.data.studentId is string);
     }
 
     match /messages/{messageId} {
