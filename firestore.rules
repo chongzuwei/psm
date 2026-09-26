@@ -113,6 +113,11 @@ service cloud.firestore {
     }
 
     match /attempts/{attemptId} {
+      allow create: if signedIn() &&
+        request.resource.data.studentId == request.auth.uid &&
+        request.resource.data.quizId is string &&
+        request.resource.data.teacherId is string &&
+        request.resource.data.score is number;
       allow read: if isTeacher() && resource.data.teacherId == request.auth.uid;
     }
 

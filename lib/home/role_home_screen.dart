@@ -11,6 +11,7 @@ import 'feedback_submission_screen.dart';
 import 'learning_resources_screen.dart';
 import 'messages_screen.dart';
 import 'quiz_management_screen.dart';
+import 'quiz_play_screen.dart';
 import 'schedule_availability_screen.dart';
 
 class RoleHomeScreen extends StatelessWidget {
@@ -294,10 +295,15 @@ class RoleHomeScreen extends StatelessWidget {
         ];
       case 'student':
         return [
-          const _FeatureCard(
+          _FeatureCard(
             title: 'Play Quiz',
             subtitle: 'Attempt quizzes to test your understanding.',
             icon: Icons.sports_esports_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => QuizPlayScreen(user: user)),
+              );
+            },
           ),
           _FeatureCard(
             title: 'Learning Materials',
