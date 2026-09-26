@@ -19,7 +19,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isOwnProfile(userId) || isAdmin();
+      allow read: if signedIn();
 
       allow create: if isAdmin() || (
         isOwnProfile(userId) &&
@@ -73,7 +73,12 @@ service cloud.firestore {
     match /ai_questions/{questionId} {
       allow create: if signedIn() && request.resource.data.studentId == request.auth.uid;
       allow read: if signedIn() && resource.data.studentId == request.auth.uid;
-      allow update, delete: if false;
+      allow update: if signedIn() &&
+        resource.data.senderId == request.auth.uid &&
+        request.resource.data.senderId == resource.data.senderId &&
+        request.resource.data.senderEmail == resource.data.senderEmail &&
+        request.resource.data.recipientEmail == resource.data.recipientEmail;
+      allow delete: if signedIn() && resource.data.senderId == request.auth.uid;
     }
 
     match /learning_resources/{resourceId} {
@@ -88,6 +93,27 @@ service cloud.firestore {
       allow create: if isTeacher() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isAdmin() ||
         (isTeacher() && resource.data.ownerId == request.auth.uid);
+    }
+
+    match /messages/{messageId} {
+      allow create: if signedIn() &&
+        request.resource.data.senderId == request.auth.uid &&
+        request.resource.data.senderEmail == request.auth.token.email &&
+        request.resource.data.recipientEmail is string &&
+        request.resource.data.message is string;
+      allow read: if signedIn() &&
+        (resource.data.senderId == request.auth.uid ||
+         resource.data.senderEmail == request.auth.token.email ||
+         resource.data.recipientEmail == request.auth.token.email);
+      allow update: if signedIn() &&
+        (resource.data.senderId == request.auth.uid ||
+         (resource.data.senderId == null && resource.data.senderEmail == request.auth.token.email)) &&
+        request.resource.data.senderEmail == resource.data.senderEmail &&
+        request.resource.data.recipientEmail == resource.data.recipientEmail &&
+        request.resource.data.senderId == resource.data.senderId;
+      allow delete: if signedIn() &&
+        (resource.data.senderId == request.auth.uid ||
+         (resource.data.senderId == null && resource.data.senderEmail == request.auth.token.email));
     }
 
     match /{document=**} { allow read, write: if false; }

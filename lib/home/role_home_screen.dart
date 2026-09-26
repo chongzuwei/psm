@@ -7,6 +7,7 @@ import '../profile/profile_screen.dart';
 import 'admin_user_management_screen.dart';
 import 'ai_chat_screen.dart';
 import 'learning_resources_screen.dart';
+import 'messages_screen.dart';
 import 'quiz_management_screen.dart';
 import 'schedule_availability_screen.dart';
 
@@ -181,12 +182,26 @@ class RoleHomeScreen extends StatelessWidget {
               ));
             },
           ),
-          _FeatureCard(title: 'Parent Messaging', subtitle: 'Send updates and discuss student progress.', icon: Icons.forum_outlined),
+          _FeatureCard(
+            title: 'Parent Messaging',
+            subtitle: 'Send updates and discuss student progress.',
+            icon: Icons.forum_outlined,
+            onTap: () async {
+              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => MessagesScreen(user: user, role: role)));
+            },
+          ),
           _FeatureCard(title: 'Feedback and Analytics', subtitle: 'Review student feedback and class performance.', icon: Icons.insights_outlined),
         ];
       case 'parent':
-        return const [
-          _FeatureCard(title: 'Teacher Messaging', subtitle: 'Communicate with teachers about progress.', icon: Icons.chat_bubble_outline),
+        return [
+          _FeatureCard(
+            title: 'Teacher Messaging',
+            subtitle: 'Communicate with teachers about progress.',
+            icon: Icons.chat_bubble_outline,
+            onTap: () async {
+              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => MessagesScreen(user: user, role: role)));
+            },
+          ),
           _FeatureCard(title: 'Progress Tracking', subtitle: 'Monitor child achievements and results.', icon: Icons.trending_up_outlined),
           _FeatureCard(title: 'Payments', subtitle: 'Make payments and view receipt history.', icon: Icons.payments_outlined),
           _FeatureCard(title: 'Notifications', subtitle: 'Receive reminders and important school updates.', icon: Icons.notifications_none_outlined),
